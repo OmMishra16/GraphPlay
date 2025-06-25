@@ -22,6 +22,11 @@ const CANVAS_WIDTH = 500;
 const CANVAS_HEIGHT = 400;
 const NODE_RADIUS = 20;
 
+// Mobile responsive canvas dimensions
+const MOBILE_CANVAS_WIDTH = 350;
+const MOBILE_CANVAS_HEIGHT = 280;
+const MOBILE_NODE_RADIUS = 16;
+
 const COLORS = [
   '#ef4444', // red
   '#3b82f6', // blue
@@ -49,19 +54,35 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const canvasWidth = isMobile ? MOBILE_CANVAS_WIDTH : CANVAS_WIDTH;
+  const canvasHeight = isMobile ? MOBILE_CANVAS_HEIGHT : CANVAS_HEIGHT;
+  const nodeRadius = isMobile ? MOBILE_NODE_RADIUS : NODE_RADIUS;
 
   // Generate random graph
   const generateGraph = useCallback(() => {
-    const nodeCount = 8;
+    const nodeCount = isMobile ? 6 : 8;
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
     
     // Create nodes in a circle pattern
     for (let i = 0; i < nodeCount; i++) {
       const angle = (i / nodeCount) * 2 * Math.PI;
-      const centerX = CANVAS_WIDTH / 2;
-      const centerY = CANVAS_HEIGHT / 2;
-      const radius = 120;
+      const centerX = canvasWidth / 2;
+      const centerY = canvasHeight / 2;
+      const radius = isMobile ? 80 : 120;
       
       newNodes.push({
         id: i,
@@ -91,7 +112,8 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
     }
     
     // Add some random edges for complexity
-    for (let i = 0; i < 3; i++) {
+    const randomEdges = isMobile ? 2 : 3;
+    for (let i = 0; i < randomEdges; i++) {
       const from = Math.floor(Math.random() * nodeCount);
       const to = Math.floor(Math.random() * nodeCount);
       
@@ -116,7 +138,7 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
     setStartTime(null);
     setGameStarted(false);
     setShowInstructions(true);
-  }, []);
+  }, [canvasWidth, canvasHeight, isMobile]);
 
   // Check for conflicts
   const checkConflicts = useCallback((currentNodes: Node[]) => {
@@ -175,7 +197,7 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
     // Draw nodes
     nodes.forEach(node => {
       ctx.beginPath();
-      ctx.arc(node.x, node.y, NODE_RADIUS, 0, 2 * Math.PI);
+      ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI);
       
       if (node.color === -1) {
         ctx.fillStyle = '#374151';
@@ -192,11 +214,11 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
       
       // Draw node ID
       ctx.fillStyle = 'white';
-      ctx.font = '14px monospace';
+      ctx.font = `${Math.max(12, nodeRadius * 0.7)}px monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(node.id.toString(), node.x, node.y + 5);
     });
-  }, [nodes, edges, conflicts]);
+  }, [nodes, edges, conflicts, nodeRadius]);
 
   // Handle canvas click
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -210,7 +232,7 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
     // Find clicked node
     const clickedNode = nodes.find(node => {
       const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
-      return distance <= NODE_RADIUS;
+      return distance <= nodeRadius;
     });
     
     if (clickedNode) {
@@ -296,35 +318,35 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
   }, [drawGraph]);
 
   return (
-    <div className="min-h-screen px-6 py-8">
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
           <button
             onClick={onBackToMenu}
             className="flex items-center text-slate-400 hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Back to Menu
           </button>
           
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center">
-              <Palette className="w-8 h-8 mr-3 text-purple-400" />
+          <div className="text-center flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 flex items-center justify-center">
+              <Palette className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 text-purple-400" />
               Graph Coloring
             </h1>
-            <p className="text-slate-400">Color nodes so no connected nodes share the same color</p>
+            <p className="text-sm sm:text-base text-slate-400">Color nodes so no connected nodes share the same color</p>
           </div>
           
-          <div className="w-24"></div>
+          <div className="hidden sm:block w-24"></div>
         </div>
 
         {/* Instructions Banner */}
         {showInstructions && (
-          <div className="mb-6 bg-purple-600/20 border border-purple-500/30 rounded-xl p-4">
+          <div className="mb-4 sm:mb-6 bg-purple-600/20 border border-purple-500/30 rounded-xl p-3 sm:p-4">
             <div className="flex items-start">
-              <Info className="w-5 h-5 text-purple-400 mr-3 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-purple-100">
+              <Info className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
+              <div className="text-xs sm:text-sm text-purple-100">
                 <p className="font-semibold mb-1">How to play:</p>
                 <p>1. <strong>Pick a color</strong> from the palette below</p>
                 <p>2. <strong>Click nodes</strong> to paint them with your selected color</p>
@@ -334,38 +356,38 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* Game Canvas */}
-          <div className="lg:col-span-3">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <div className="flex justify-center mb-4">
+          <div className="lg:col-span-3 order-2 lg:order-1">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+              <div className="flex justify-center mb-4 overflow-x-auto">
                 <canvas
                   ref={canvasRef}
-                  width={CANVAS_WIDTH}
-                  height={CANVAS_HEIGHT}
-                  className="border border-white/20 rounded-lg cursor-pointer hover:border-white/40 transition-colors"
+                  width={canvasWidth}
+                  height={canvasHeight}
+                  className="border border-white/20 rounded-lg cursor-pointer hover:border-white/40 transition-colors max-w-full"
                   onClick={handleCanvasClick}
                 />
               </div>
               
               {/* Current Color Indicator */}
               <div className="text-center mb-4">
-                <div className="inline-flex items-center px-4 py-2 bg-white/10 rounded-lg">
+                <div className="inline-flex items-center px-3 sm:px-4 py-2 bg-white/10 rounded-lg">
                   <div 
-                    className="w-4 h-4 rounded-full mr-2 border border-white/30"
+                    className="w-3 h-3 sm:w-4 sm:h-4 rounded-full mr-2 border border-white/30"
                     style={{ backgroundColor: COLORS[selectedColor] }}
                   ></div>
-                  <span className="text-white font-medium">
-                    <MousePointer className="w-4 h-4 inline mr-1" />
+                  <span className="text-white font-medium text-xs sm:text-sm">
+                    <MousePointer className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                     Click nodes to paint them {COLOR_NAMES[selectedColor]}
                   </span>
                 </div>
               </div>
               
               {conflicts.size > 0 && (
-                <div className="mt-4 p-3 bg-red-600/20 border border-red-500/30 rounded-lg">
-                  <div className="flex items-center justify-center text-red-400">
-                    <AlertCircle className="w-4 h-4 mr-2" />
+                <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-red-600/20 border border-red-500/30 rounded-lg">
+                  <div className="flex items-center justify-center text-red-400 text-sm sm:text-base">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     <span className="font-semibold">Conflict! Connected nodes can't have the same color.</span>
                   </div>
                 </div>
@@ -374,16 +396,16 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
           </div>
 
           {/* Control Panel */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
             {/* Color Palette */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4">Color Palette</h3>
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Color Palette</h3>
               <div className="grid grid-cols-4 gap-2">
                 {COLORS.map((color, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedColor(index)}
-                    className={`w-12 h-12 rounded-lg border-2 transition-all hover:scale-105 ${
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg border-2 transition-all hover:scale-105 ${
                       selectedColor === index
                         ? 'border-white scale-110 shadow-lg'
                         : 'border-white/30 hover:border-white/60'
@@ -393,75 +415,75 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
                   />
                 ))}
               </div>
-              <div className="mt-3 text-center text-sm text-slate-400">
+              <div className="mt-2 sm:mt-3 text-center text-xs sm:text-sm text-slate-400">
                 Selected: <span className="text-white font-medium">{COLOR_NAMES[selectedColor]}</span>
               </div>
             </div>
 
             {/* Controls */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4">Actions</h3>
-              <div className="space-y-3">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Actions</h3>
+              <div className="space-y-2 sm:space-y-3">
                 <button
                   onClick={autoSolve}
-                  className="w-full flex items-center justify-center px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+                  className="w-full flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base"
                 >
-                  <Play className="w-4 h-4 mr-2" />
+                  <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Auto Solve
                 </button>
                 
                 <button
                   onClick={clearColors}
-                  className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors"
+                  className="w-full flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base"
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
+                  <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Clear All Colors
                 </button>
                 
                 <button
                   onClick={generateGraph}
-                  className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                  className="w-full flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base"
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
+                  <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   New Graph
                 </button>
               </div>
             </div>
 
             {/* Stats */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4">Progress</h3>
-              <div className="space-y-3">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Progress</h3>
+              <div className="space-y-2 sm:space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300 flex items-center">
-                    <Timer className="w-4 h-4 mr-2" />
+                  <span className="text-slate-300 flex items-center text-sm sm:text-base">
+                    <Timer className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                     Time
                   </span>
-                  <span className="text-white font-mono">{timeElapsed}s</span>
+                  <span className="text-white font-mono text-sm sm:text-base">{timeElapsed}s</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Colors Used</span>
-                  <span className="text-purple-400 font-mono">{colorsUsed}</span>
+                  <span className="text-slate-300 text-sm sm:text-base">Colors Used</span>
+                  <span className="text-purple-400 font-mono text-sm sm:text-base">{colorsUsed}</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Conflicts</span>
-                  <span className="text-red-400 font-mono">{conflicts.size}</span>
+                  <span className="text-slate-300 text-sm sm:text-base">Conflicts</span>
+                  <span className="text-red-400 font-mono text-sm sm:text-base">{conflicts.size}</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Nodes Colored</span>
-                  <span className="text-slate-400 font-mono">
+                  <span className="text-slate-300 text-sm sm:text-base">Nodes Colored</span>
+                  <span className="text-slate-400 font-mono text-sm sm:text-base">
                     {nodes.filter(n => n.color !== -1).length}/{nodes.length}
                   </span>
                 </div>
               </div>
               
               {isComplete && (
-                <div className="mt-4 p-3 bg-purple-600/20 border border-purple-500/30 rounded-lg">
-                  <div className="flex items-center text-purple-400">
-                    <Trophy className="w-4 h-4 mr-2" />
+                <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-purple-600/20 border border-purple-500/30 rounded-lg">
+                  <div className="flex items-center text-purple-400 text-sm sm:text-base">
+                    <Trophy className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     <span className="font-semibold">Perfect Coloring!</span>
                   </div>
                 </div>
@@ -469,13 +491,13 @@ const GraphColoring: React.FC<GraphColoringProps> = ({ onBackToMenu }) => {
             </div>
 
             {/* Algorithm Info */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <h3 className="text-lg font-semibold text-white mb-3">Graph Coloring</h3>
-              <div className="text-sm text-slate-300 space-y-2">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">Graph Coloring</h3>
+              <div className="text-xs sm:text-sm text-slate-300 space-y-1 sm:space-y-2">
                 <p><strong className="text-purple-400">Goal:</strong> Use minimum colors possible</p>
                 <p><strong className="text-purple-400">Rule:</strong> Connected nodes must have different colors</p>
                 <p><strong className="text-purple-400">Strategy:</strong> Start with high-degree nodes</p>
-                <p className="text-xs text-slate-400 mt-3 pt-2 border-t border-white/10">
+                <p className="text-xs text-slate-400 mt-2 sm:mt-3 pt-2 border-t border-white/10">
                   Graph coloring has applications in scheduling, register allocation, and map coloring.
                 </p>
               </div>

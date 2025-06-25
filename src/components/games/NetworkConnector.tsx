@@ -24,6 +24,11 @@ const CANVAS_WIDTH = 500;
 const CANVAS_HEIGHT = 400;
 const NODE_RADIUS = 25;
 
+// Mobile responsive canvas dimensions
+const MOBILE_CANVAS_WIDTH = 350;
+const MOBILE_CANVAS_HEIGHT = 280;
+const MOBILE_NODE_RADIUS = 20;
+
 const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -38,10 +43,26 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
   const [gameStarted, setGameStarted] = useState(false);
   const [showMST, setShowMST] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const canvasWidth = isMobile ? MOBILE_CANVAS_WIDTH : CANVAS_WIDTH;
+  const canvasHeight = isMobile ? MOBILE_CANVAS_HEIGHT : CANVAS_HEIGHT;
+  const nodeRadius = isMobile ? MOBILE_NODE_RADIUS : NODE_RADIUS;
 
   // Generate random network
   const generateNetwork = useCallback(() => {
-    const nodeCount = 6;
+    const nodeCount = isMobile ? 5 : 6;
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
     
@@ -49,9 +70,9 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
     const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
     for (let i = 0; i < nodeCount; i++) {
       const angle = (i / nodeCount) * 2 * Math.PI;
-      const centerX = CANVAS_WIDTH / 2;
-      const centerY = CANVAS_HEIGHT / 2;
-      const radius = 120 + Math.random() * 40;
+      const centerX = canvasWidth / 2;
+      const centerY = canvasHeight / 2;
+      const radius = (isMobile ? 80 : 120) + Math.random() * (isMobile ? 20 : 40);
       
       newNodes.push({
         id: i,
@@ -71,7 +92,7 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
         );
         
         // Weight based on distance with some randomization
-        const weight = Math.floor(distance / 10) + Math.floor(Math.random() * 5) + 1;
+        const weight = Math.floor(distance / (isMobile ? 8 : 10)) + Math.floor(Math.random() * 5) + 1;
         
         newEdges.push({
           from: i,
@@ -96,7 +117,7 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
     setGameStarted(false);
     setShowMST(false);
     setShowInstructions(true);
-  }, []);
+  }, [canvasWidth, canvasHeight, isMobile]);
 
   // Find MST using Kruskal's algorithm
   const findMST = useCallback(() => {
@@ -220,11 +241,12 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
       const midX = (fromNode.x + toNode.x) / 2;
       const midY = (fromNode.y + toNode.y) / 2;
       
+      const rectSize = isMobile ? 20 : 24;
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(midX - 12, midY - 8, 24, 16);
+      ctx.fillRect(midX - rectSize/2, midY - 8, rectSize, 16);
       
       ctx.fillStyle = 'white';
-      ctx.font = '12px monospace';
+      ctx.font = `${isMobile ? 10 : 12}px monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(edge.weight.toString(), midX, midY + 4);
     });
@@ -232,7 +254,7 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
     // Draw nodes
     nodes.forEach(node => {
       ctx.beginPath();
-      ctx.arc(node.x, node.y, NODE_RADIUS, 0, 2 * Math.PI);
+      ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI);
       ctx.fillStyle = '#374151';
       ctx.fill();
       
@@ -242,11 +264,11 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
       
       // Draw label
       ctx.fillStyle = 'white';
-      ctx.font = '16px monospace';
+      ctx.font = `${Math.max(14, nodeRadius * 0.6)}px monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(node.label, node.x, node.y + 5);
     });
-  }, [nodes, edges, selectedEdges, mstEdges, showMST]);
+  }, [nodes, edges, selectedEdges, mstEdges, showMST, nodeRadius, isMobile]);
 
   // Handle canvas click
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -259,7 +281,7 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
     
     // Find clicked edge
     let clickedEdgeIndex = -1;
-    const clickThreshold = 10;
+    const clickThreshold = isMobile ? 15 : 10;
     
     edges.forEach((edge, index) => {
       const fromNode = nodes[edge.from];
@@ -371,62 +393,62 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
   }, [drawNetwork]);
 
   return (
-    <div className="min-h-screen px-6 py-8">
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
           <button
             onClick={onBackToMenu}
             className="flex items-center text-slate-400 hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Back to Menu
           </button>
           
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center">
-              <Network className="w-8 h-8 mr-3 text-orange-400" />
+          <div className="text-center flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 flex items-center justify-center">
+              <Network className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 text-orange-400" />
               Network Connector
             </h1>
-            <p className="text-slate-400">Build a Minimum Spanning Tree with lowest cost</p>
+            <p className="text-sm sm:text-base text-slate-400">Build a Minimum Spanning Tree with lowest cost</p>
           </div>
           
-          <div className="w-24"></div>
+          <div className="hidden sm:block w-24"></div>
         </div>
 
         {/* Instructions Banner */}
         {showInstructions && (
-          <div className="mb-6 bg-orange-600/20 border border-orange-500/30 rounded-xl p-4">
+          <div className="mb-4 sm:mb-6 bg-orange-600/20 border border-orange-500/30 rounded-xl p-3 sm:p-4">
             <div className="flex items-start">
-              <Info className="w-5 h-5 text-orange-400 mr-3 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-orange-100">
+              <Info className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
+              <div className="text-xs sm:text-sm text-orange-100">
                 <p className="font-semibold mb-1">How to play:</p>
                 <p>1. <strong>Click on connections</strong> (lines between nodes) to select them</p>
                 <p>2. <strong>Goal:</strong> Connect all nodes using the minimum total cost</p>
-                <p>3. <strong>You need exactly 5 connections</strong> to connect all 6 nodes!</p>
+                <p>3. <strong>You need exactly {nodes.length - 1} connections</strong> to connect all {nodes.length} nodes!</p>
               </div>
             </div>
           </div>
         )}
 
-        <div className="grid lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* Game Canvas */}
-          <div className="lg:col-span-3">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <div className="flex justify-center mb-4">
+          <div className="lg:col-span-3 order-2 lg:order-1">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+              <div className="flex justify-center mb-4 overflow-x-auto">
                 <canvas
                   ref={canvasRef}
-                  width={CANVAS_WIDTH}
-                  height={CANVAS_HEIGHT}
-                  className="border border-white/20 rounded-lg cursor-pointer hover:border-white/40 transition-colors"
+                  width={canvasWidth}
+                  height={canvasHeight}
+                  className="border border-white/20 rounded-lg cursor-pointer hover:border-white/40 transition-colors max-w-full"
                   onClick={handleCanvasClick}
                 />
               </div>
               
               {/* Current Status */}
-              <div className="text-center text-slate-400 text-sm mb-4">
+              <div className="text-center text-slate-400 text-xs sm:text-sm mb-4">
                 <div className="flex items-center justify-center">
-                  <MousePointer className="w-4 h-4 mr-2" />
+                  <MousePointer className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   <span>
                     Selected: <strong className="text-blue-400">{selectedEdges.size}</strong> connections, 
                     Need: <strong className="text-orange-400">{nodes.length - 1}</strong> to connect all nodes
@@ -435,18 +457,18 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
               </div>
               
               {/* Legend */}
-              <div className="flex justify-center space-x-6 text-sm flex-wrap gap-y-2">
+              <div className="flex justify-center space-x-3 sm:space-x-6 text-xs sm:text-sm flex-wrap gap-y-2">
                 <div className="flex items-center">
-                  <div className="w-4 h-1 bg-slate-500 mr-2"></div>
+                  <div className="w-3 h-1 sm:w-4 sm:h-1 bg-slate-500 mr-1 sm:mr-2"></div>
                   <span className="text-slate-300">Available</span>
                 </div>
                 <div className="flex items-center">
-                  <div className="w-4 h-1 bg-blue-500 mr-2"></div>
+                  <div className="w-3 h-1 sm:w-4 sm:h-1 bg-blue-500 mr-1 sm:mr-2"></div>
                   <span className="text-slate-300">Selected</span>
                 </div>
                 {showMST && (
                   <div className="flex items-center">
-                    <div className="w-4 h-1 bg-green-500 mr-2"></div>
+                    <div className="w-3 h-1 sm:w-4 sm:h-1 bg-green-500 mr-1 sm:mr-2"></div>
                     <span className="text-slate-300">Optimal Solution</span>
                   </div>
                 )}
@@ -455,68 +477,68 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
           </div>
 
           {/* Control Panel */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
             {/* Controls */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4">Actions</h3>
-              <div className="space-y-3">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Actions</h3>
+              <div className="space-y-2 sm:space-y-3">
                 <button
                   onClick={showMSTSolution}
-                  className="w-full flex items-center justify-center px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+                  className="w-full flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base"
                 >
-                  <Zap className="w-4 h-4 mr-2" />
+                  <Zap className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Show Optimal Solution
                 </button>
                 
                 <button
                   onClick={resetSelection}
-                  className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors"
+                  className="w-full flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base"
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
+                  <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Clear Selection
                 </button>
                 
                 <button
                   onClick={generateNetwork}
-                  className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                  className="w-full flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base"
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
+                  <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Generate New Network
                 </button>
               </div>
             </div>
 
             {/* Stats */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4">Progress</h3>
-              <div className="space-y-3">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Progress</h3>
+              <div className="space-y-2 sm:space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300 flex items-center">
-                    <Timer className="w-4 h-4 mr-2" />
+                  <span className="text-slate-300 flex items-center text-sm sm:text-base">
+                    <Timer className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                     Time
                   </span>
-                  <span className="text-white font-mono">{timeElapsed}s</span>
+                  <span className="text-white font-mono text-sm sm:text-base">{timeElapsed}s</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Connections</span>
-                  <span className="text-blue-400 font-mono">{selectedEdges.size}/{nodes.length - 1}</span>
+                  <span className="text-slate-300 text-sm sm:text-base">Connections</span>
+                  <span className="text-blue-400 font-mono text-sm sm:text-base">{selectedEdges.size}/{nodes.length - 1}</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Your Cost</span>
-                  <span className="text-orange-400 font-mono">{totalCost}</span>
+                  <span className="text-slate-300 text-sm sm:text-base">Your Cost</span>
+                  <span className="text-orange-400 font-mono text-sm sm:text-base">{totalCost}</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Optimal Cost</span>
-                  <span className="text-green-400 font-mono">{mstCost}</span>
+                  <span className="text-slate-300 text-sm sm:text-base">Optimal Cost</span>
+                  <span className="text-green-400 font-mono text-sm sm:text-base">{mstCost}</span>
                 </div>
                 
                 {isComplete && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-300">Efficiency</span>
-                    <span className="text-purple-400 font-mono">
+                    <span className="text-slate-300 text-sm sm:text-base">Efficiency</span>
+                    <span className="text-purple-400 font-mono text-sm sm:text-base">
                       {totalCost > 0 ? Math.round((mstCost / totalCost) * 100) : 0}%
                     </span>
                   </div>
@@ -524,9 +546,9 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
               </div>
               
               {isComplete && (
-                <div className="mt-4 p-3 bg-orange-600/20 border border-orange-500/30 rounded-lg">
-                  <div className="flex items-center text-orange-400">
-                    <Trophy className="w-4 h-4 mr-2" />
+                <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-orange-600/20 border border-orange-500/30 rounded-lg">
+                  <div className="flex items-center text-orange-400 text-sm sm:text-base">
+                    <Trophy className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     <span className="font-semibold">
                       {totalCost === mstCost ? 'Perfect! Minimum cost achieved!' : 'Network connected successfully!'}
                     </span>
@@ -536,13 +558,13 @@ const NetworkConnector: React.FC<NetworkConnectorProps> = ({ onBackToMenu }) => 
             </div>
 
             {/* Algorithm Info */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-              <h3 className="text-lg font-semibold text-white mb-3">Minimum Spanning Tree</h3>
-              <div className="text-sm text-slate-300 space-y-2">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">Minimum Spanning Tree</h3>
+              <div className="text-xs sm:text-sm text-slate-300 space-y-1 sm:space-y-2">
                 <p><strong className="text-orange-400">Goal:</strong> Connect all nodes with minimum cost</p>
                 <p><strong className="text-orange-400">Rule:</strong> Use exactly N-1 edges for N nodes</p>
                 <p><strong className="text-orange-400">Strategy:</strong> Choose cheapest connections first</p>
-                <p className="text-xs text-slate-400 mt-3 pt-2 border-t border-white/10">
+                <p className="text-xs text-slate-400 mt-2 sm:mt-3 pt-2 border-t border-white/10">
                   MST algorithms like Kruskal's and Prim's are used in network design, circuit design, and clustering.
                 </p>
               </div>
