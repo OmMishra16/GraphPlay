@@ -1,6 +1,7 @@
 # GraphPlay - Interactive Graph Algorithm Learning Platform
 
 Deployed link :- https://graph-play.vercel.app/
+Demo Video Link :- https://www.loom.com/share/544480defa4c446dbfb5c6d1f9839814?sid=0925f975-519c-4f74-be70-b12eb1b8e8be
 
 ## Project Description
 GraphPlay is a web-based educational game platform designed to help students and enthusiasts learn fundamental graph algorithms through interactive mini-games. The platform aims to make complex graph theory concepts accessible and engaging by allowing users to visualize and experiment with algorithms in a fun, hands-on environment.
